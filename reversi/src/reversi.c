@@ -28,8 +28,11 @@ int main (int argc, char ** argv) {
   char * s_tart = NULL;  /* _S_tarting position */
   int c;
   opterr = 0;
-  while ((c = getopt (argc, argv, "vcudrls:")) != -1)
+  while ((c = getopt (argc, argv, "hvcudrls:")) != -1)
     switch (c) {
+      case 'h':
+        usage ();
+        return PRINT_SUCCESS; /* which is actually 1 */
       case 'v':
         v_flag = 1; break;
       case 'c':
