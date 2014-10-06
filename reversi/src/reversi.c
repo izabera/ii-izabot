@@ -8,6 +8,7 @@
 
 /* 0 = black 1 = white 2 = empty */
 
+#define _GNU_SOURCE
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -43,6 +44,8 @@ int main (int argc, char ** argv) {
         d_flag = 1; break;
       case 'r':
         r_flag = 1; break;
+      case 'L':
+        L_flag = 1; break;
       case 'l':
         l_flag = 1; break;
       case 's':
@@ -77,14 +80,37 @@ int main (int argc, char ** argv) {
       printmsg (msg, PRINT_ERROR);
       return PRINT_ERROR;
     }
-    char temp[8][8];
+    char *temp[8];
     i = 0;
-    while (fgets (temp[i], 8 * sizeof (temp[0]), start)) i++;
-    if (i != 7) {
+    char line[10];
+    char * eof;
+    while ((eof = fgets (line, 10, start)) != NULL) {
+      strtok (line, "\n");
+      temp[i] = strdup (line);
+      i++;
+    }
+    if (i != 8) {
       printmsg ("Invalid input file", PRINT_ERROR);
       return PRINT_ERROR;
     }
-    for (i = 0; i < 8; i++) memcpy (&board[i], &temp[i], sizeof(temp[0]));
+    for (i = 0; i < 8; i++)
+      for (j = 0; j < 8; j++)
+        switch (temp[i][j]) {
+          case 'O':
+            board[i][j] = 0;
+            break;
+          case 'X':
+            board[i][j] = 1;
+            break;
+          case '.':
+            board[i][j] = 2;
+            break;
+          default:
+            /*printmsg ("Invalid input file", PRINT_ERROR);*/
+            sprintf (msg, "Invalid input file, invalid char at position i=%d j=%d which was %cEND", i, j, temp[i][j]);
+            printmsg(msg, PRINT_ERROR);
+            return PRINT_ERROR;
+        }
   }
   else {
     for (i = 0; i < 8; i++)

@@ -67,8 +67,8 @@ int explore (int row, int col, int board[8][8], int turn, int direction) {
     case 9:
       for (; INSIDE(row, col); row++, col++) tempvector[i++] = board[row][col]; break;
   }
-  /* now tempvector[0] == turn, skip it and start from tempvector[1] */
-  i = 1;
+  /* now tempvector[0] == 2, skip it and start from tempvector[1] */
+  i = 0;
   /*
    * if (tempvector[i] == 2) return 0;
    * if (tempvector[i] == turn) return 0; 
