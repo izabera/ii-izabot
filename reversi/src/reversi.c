@@ -1,5 +1,5 @@
 /*
- * 2-playerow reversi by iza
+ * reversi by iza
  * mit license
  *
  * reads moves from stdin
@@ -8,7 +8,6 @@
 
 /* 0 = black 1 = white 2 = empty */
 
-#define _GNU_SOURCE
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -144,10 +143,12 @@ int main (int argc, char ** argv) {
       row = ~row & 7;
       if (islegal (row, col, board, turn)) {
         domove (row, col, board, turn);
-        if (v_flag) draw (board, turn, u_flag, d_flag, r_flag, l_flag, c_flag, H_flag);
         turn = nextturn (board, turn);
-        if (v_flag) printturn(turn);
-        showscore(board);
+        if (v_flag) {
+          draw (board, turn, u_flag, d_flag, r_flag, l_flag, c_flag, H_flag);
+          printturn (turn);
+        }
+        showscore (board);
       }
       else {
         sprintf (msg, "Invalid move: row=%d column=%c", (~row & 7) + 1, col + 65);
