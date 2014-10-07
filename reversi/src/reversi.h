@@ -71,7 +71,7 @@ int explore (int row, int col, int board[8][8], int turn, int direction) {
    * if (tempvector[1] == 2) return 0;
    * if (tempvector[1] == turn) return 0; */
   if (tempvector[1] != (turn + 1) % 2) return 0;
-  for (i = 2; i < 8 && tempvector[i] != 3; i++) if (tempvector[i] == turn) return 1;
+  for (i = 2; i < 8 && tempvector[i] < 2; i++) if (tempvector[i] == turn) return 1;
   return 0;
 }
 
