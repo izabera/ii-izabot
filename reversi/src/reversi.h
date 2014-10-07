@@ -141,16 +141,26 @@ int nextturn (int board[8][8], int turn) {
 
 #define PRINT_X (c_flag == 1 ? RED BOLD "X" RESET : "X")
 #define PRINT_O (c_flag == 1 ? GREEN BOLD "O" RESET : "O")
+#define PRINT_DOT ((H_flag == 1 && islegal (i, j, board, turn)) ? \
+                   (c_flag == 1 ? CYAN "x" RESET : "x") : "." )
 
-void draw (int board[8][8], int u_flag, int d_flag, int r_flag, int l_flag, int c_flag) {
+void draw (int board[8][8], int turn, int u_flag, int d_flag, int r_flag, int l_flag, int c_flag, int H_flag) {
   int i, j;
   if (l_flag) printf ("  ");
   if (u_flag) printf ("ABCDEFGH");
   if (l_flag || u_flag) printf ("\n");
+
   for (i = 0; i < 8; i++) {
     if (l_flag) printf ("%d ", (~i & 7) + 1);
     for (j = 0; j < 8; j++)
-      printf (board[i][j] == 2 ? "." : board[i][j] == 1 ? PRINT_X : PRINT_O);
+      switch (board[i][j]) {
+        case 0:
+          printf (PRINT_O); break;
+        case 1:
+          printf (PRINT_X); break;
+        default:
+          printf (PRINT_DOT); break;
+      }
     if (r_flag) printf (" %d", (~i & 7) + 1);
     printf ("\n");
   }
@@ -176,6 +186,8 @@ void usage () {
   printmsg ("       -" BOLD YELLOW "l " RESET "        (LEFT) show numbers to the left of the board", PRINT_DEFAULT);
   printmsg ("       -" BOLD YELLOW "s " RESET "FILE    read starting board from 'FILE' file", PRINT_DEFAULT);
   printmsg ("       -" BOLD YELLOW "h " RESET "        show this help", PRINT_DEFAULT);
+  printmsg ("       -" BOLD YELLOW "L " RESET "        log everything to /tmp/reversilog", PRINT_DEFAULT);
+  printmsg ("       -" BOLD YELLOW "H " RESET "        hint valid moves", PRINT_DEFAULT);
 }
 
 

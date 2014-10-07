@@ -25,11 +25,12 @@ int main (int argc, char ** argv) {
       r_flag = 0,        /* _R_ight, show numbers to the right (default = no) */
       l_flag = 0,        /* _L_eft, show numbers to the left (default = no) */
       s_flag = 0,        /* _S_tarting position, provided or not (default = no) */
-      L_flag = 0;        /* _L_og everything to /tmp/ */
+      L_flag = 0,        /* _L_og everything to /tmp/ */
+      H_flag = 0;        /* _H_int valid moves */
   char * s_tart = NULL;  /* _S_tarting position */
   int c;
   opterr = 0;
-  while ((c = getopt (argc, argv, "hvcudrls:")) != -1)
+  while ((c = getopt (argc, argv, "hvcudrlLHs:")) != -1)
     switch (c) {
       case 'h':
         usage ();
@@ -44,10 +45,12 @@ int main (int argc, char ** argv) {
         d_flag = 1; break;
       case 'r':
         r_flag = 1; break;
-      case 'L':
-        L_flag = 1; break;
       case 'l':
         l_flag = 1; break;
+      case 'L':
+        L_flag = 1; break;
+      case 'H':
+        H_flag = 1; break;
       case 's':
         s_tart = optarg; s_flag = 1; break;
       case '?':
@@ -123,7 +126,7 @@ int main (int argc, char ** argv) {
   }
   char col;
   int row, turn = 0;
-  draw (board, u_flag, d_flag, r_flag, l_flag, c_flag);
+  draw (board, turn, u_flag, d_flag, r_flag, l_flag, c_flag, H_flag);
   printturn (turn);
   while (won (board) == 2 && scanf (" %c %d", &col, &row) != -1) {
     if ((!(97 <= col && col <= 104)
@@ -141,7 +144,7 @@ int main (int argc, char ** argv) {
       row = ~row & 7;
       if (islegal (row, col, board, turn)) {
         domove (row, col, board, turn);
-        if (v_flag) draw (board, u_flag, d_flag, r_flag, l_flag, c_flag);
+        if (v_flag) draw (board, turn, u_flag, d_flag, r_flag, l_flag, c_flag, H_flag);
         turn = nextturn (board, turn);
         if (v_flag) printturn(turn);
         showscore(board);
