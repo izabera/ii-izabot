@@ -24,22 +24,49 @@
 #endif
 
 
+FILE * logfile;
+int L_flag;
+#define OUTPUT (L_flag == 1 ? logfile : stderr)
+#define OUTERR (L_flag == 1 ? logfile : stderr)
+
+
+#define MAXLVL 9
+
+
+void printmsg (char * msg, int urgency);
+int explore (int row, int col, int board[8][8], int turn, int direction);
+int islegal (int row, int col, int board[8][8], int turn);
+void domove (int row, int col, int board[8][8], int turn);
+void showscore (int board[8][8]);
+int * score (int board[8][8]);
+int nextturn (int board[8][8], int turn);
+void draw (int board[8][8], int turn, int u_flag, int d_flag, int r_flag, int l_flag, int c_flag, int H_flag);
+void printturn (int turn);
+void usage ();
+int won (int board[8][8]);
+void copyboard (int source[8][8], int dest[8][8]);
+int diffscoressmart (int board[8][8]);
+void bestmove (int board[8][8], int turn, int * row, char * col, int * diffscore, int lookahead);
+void getscores (int board[8][8], int *s0, int *s1);
+void quit (int signal, int L_flag);
+
+
 void printmsg (char * msg, int urgency) {
   switch (urgency) {
     case 0: /* default */
       break;
     case 1: /* things are good */
-      fprintf(stderr, CYAN BOLD   "SUCCESS " RESET); break;
+      fprintf (OUTERR, CYAN BOLD   "SUCCESS " RESET); break;
     case 2: /* alert */
-      fprintf(stderr, YELLOW BOLD "WARNING " RESET); break;
+      fprintf (OUTERR, YELLOW BOLD "WARNING " RESET); break;
     case 3: /* things are horribly wrong and armageddon is coming */
-      fprintf(stderr, RED BOLD    "ERROR   " RESET); break;
+      fprintf (OUTERR, RED BOLD    "ERROR   " RESET); break;
     case 4: /* for testing purposes, to be disabled before actual usage */
-      fprintf(stderr, BLUE BOLD   "TESTING " RESET); break;
+      fprintf (OUTERR, BLUE BOLD   "TESTING " RESET); break;
     case 5: /* for debug use */
-      fprintf(stderr, MAGENTA     "DEBUG   " RESET); break;
+      fprintf (OUTERR, MAGENTA     "DEBUG   " RESET); break;
     }
-  fprintf(stderr, "%s\n", msg);
+  fprintf (OUTERR, "%s\n", msg);
 }
 
 
@@ -133,8 +160,8 @@ int nextturn (int board[8][8], int turn) {
   int i, j, count = 0;
   for (i = 0; i < 8; i++)
     for (j = 0; j < 8; j++)
-      if (islegal(i, j, board, (turn + 1) % 2)) count ++;
-  if (count) return (turn + 1) % 2;
+      if (islegal (i, j, board, 1 - turn)) count ++;
+  if (count) return 1 - turn;
   else return turn;
 }
 
@@ -146,27 +173,26 @@ int nextturn (int board[8][8], int turn) {
 
 void draw (int board[8][8], int turn, int u_flag, int d_flag, int r_flag, int l_flag, int c_flag, int H_flag) {
   int i, j;
-  if (l_flag) printf ("  ");
-  if (u_flag) printf ("ABCDEFGH");
-  if (l_flag || u_flag) printf ("\n");
-
+  if (l_flag) fprintf (OUTPUT, "  ");
+  if (u_flag) fprintf (OUTPUT, "ABCDEFGH");
+  if (l_flag || u_flag) fprintf (OUTPUT, "\n");
   for (i = 0; i < 8; i++) {
-    if (l_flag) printf ("%d ", (~i & 7) + 1);
+    if (l_flag) fprintf (OUTPUT, "%d ", (~i & 7) + 1);
     for (j = 0; j < 8; j++)
       switch (board[i][j]) {
         case 0:
-          printf (PRINT_O); break;
+          fprintf (OUTPUT, PRINT_O); break;
         case 1:
-          printf (PRINT_X); break;
+          fprintf (OUTPUT, PRINT_X); break;
         default:
-          printf (PRINT_DOT); break;
+          fprintf (OUTPUT, PRINT_DOT); break;
       }
-    if (r_flag) printf (" %d", (~i & 7) + 1);
-    printf ("\n");
+    if (r_flag) fprintf (OUTPUT, " %d", 8 - i);
+    fprintf (OUTPUT, "\n");
   }
-  if (l_flag) printf ("  ");
-  if (d_flag) printf ("ABCDEFGH");
-  if (l_flag || d_flag) printf ("\n");
+  if (l_flag) fprintf (OUTPUT, "  ");
+  if (d_flag) fprintf (OUTPUT, "ABCDEFGH");
+  if (l_flag || d_flag) fprintf (OUTPUT, "\n");
 }
 
 
@@ -177,33 +203,128 @@ void printturn (int turn) {
 }
 
 void usage () {
-  printmsg ("Usage: reversi [-v] [-c] [-u] [-d] [-r] [-l] [-s FILE]", PRINT_DEFAULT);
+  printmsg ("Usage: reversi [-h] [-s|t FILE] [-v] [-c] [-L] [-H] [-u] [-d] [-r] [-l] [-A|B [1-5]]", PRINT_DEFAULT);
+  printmsg ("       -" BOLD        "h " RESET "        show this help", PRINT_DEFAULT);
+  printmsg ("       -" BOLD        "s " RESET "FILE    read starting board from 'FILE' file (green plays)", PRINT_DEFAULT);
+  printmsg ("       -" BOLD        "t " RESET "FILE    read starting board from 'FILE' file (red plays)", PRINT_DEFAULT);
+  printmsg ("      Output options              ", PRINT_DEFAULT);
   printmsg ("       -" BOLD YELLOW "v " RESET "        verbose output: print board after each move", PRINT_DEFAULT);
   printmsg ("       -" BOLD YELLOW "c " RESET "        color output", PRINT_DEFAULT);
-  printmsg ("       -" BOLD YELLOW "u " RESET "        (UP) show letters above board", PRINT_DEFAULT);
-  printmsg ("       -" BOLD YELLOW "d " RESET "        (DOWN) show letters below board", PRINT_DEFAULT);
-  printmsg ("       -" BOLD YELLOW "r " RESET "        (RIGHT) show numbers to the right of the board", PRINT_DEFAULT);
-  printmsg ("       -" BOLD YELLOW "l " RESET "        (LEFT) show numbers to the left of the board", PRINT_DEFAULT);
-  printmsg ("       -" BOLD YELLOW "s " RESET "FILE    read starting board from 'FILE' file", PRINT_DEFAULT);
-  printmsg ("       -" BOLD YELLOW "h " RESET "        show this help", PRINT_DEFAULT);
   printmsg ("       -" BOLD YELLOW "L " RESET "        log everything to /tmp/reversilog", PRINT_DEFAULT);
   printmsg ("       -" BOLD YELLOW "H " RESET "        hint valid moves", PRINT_DEFAULT);
+  printmsg ("      Borders                     ", PRINT_DEFAULT);
+  printmsg ("       -" BOLD GREEN  "u " RESET "        (UP) show letters above board", PRINT_DEFAULT);
+  printmsg ("       -" BOLD GREEN  "d " RESET "        (DOWN) show letters below board", PRINT_DEFAULT);
+  printmsg ("       -" BOLD GREEN  "r " RESET "        (RIGHT) show numbers to the right of the board", PRINT_DEFAULT);
+  printmsg ("       -" BOLD GREEN  "l " RESET "        (LEFT) show numbers to the left of the board", PRINT_DEFAULT);
+  printmsg ("      Single-Player mode          ", PRINT_DEFAULT);
+  printmsg ("       -" BOLD CYAN   "A " RESET "[1-5]   AI level, Computer plays green (default = 2)", PRINT_DEFAULT);
+  printmsg ("       -" BOLD CYAN   "B " RESET "[1-5]   AI level, Computer plays red (default = 2)", PRINT_DEFAULT);
+}
+
+
+void getscores (int board[8][8], int *s0, int *s1) {
+  int i, j;
+  *s0 = 0;
+  *s1 = 0;
+  for (i = 0; i < 8; i++)
+    for (j = 0; j < 8; j++)
+      if (board[i][j] == 0) (* s0) ++;
+      else if (board[i][j] == 1) (* s1) ++;
 }
 
 
 int won (int board[8][8]) {
-  int bla = 0, whi = 0, i, j;
-  for (i = 0; i < 8; i++)
-    for (j = 0; j < 8; j++)
-      if (board[i][j] == 0) bla++;
-      else if (board[i][j] == 1) whi++;
-  if (whi == 0) return 0;
-  if (bla == 0) return 1;
-  if (bla + whi == 64) {
-    if (bla > whi) return 0;
+  int red, green;
+  getscores (board, &red, &green);
+  if ((nextturn (board, 0) == 0) && (nextturn (board, 1) == 1)) {
+    if (red > green) return 0;
     else return 1;
   }
   return 2;
+}
+
+
+void copyboard (int source[8][8], int dest[8][8]) {
+  int i, j;
+  for (i = 0; i < 8; i++)
+    for (j = 0; j < 8; j++)
+      dest[i][j] = source[i][j];
+}
+
+
+int diffscoressmart (int board[8][8]) {
+  static int scoretable[8][8] = { /* totally made up */
+    {10, 3, 7, 7, 7, 7, 3,10},
+    { 3, 2, 4, 4, 4, 4, 2, 3},
+    { 7, 4, 5, 5, 5, 5, 4, 7},
+    { 7, 4, 5, 5, 5, 5, 4, 7},
+    { 7, 4, 5, 5, 5, 5, 4, 7},
+    { 7, 4, 5, 5, 5, 5, 4, 7},
+    { 3, 2, 4, 4, 4, 4, 2, 3},
+    {10, 3, 7, 7, 7, 7, 3,10},
+  };
+  int i, j, s0, s1;
+  s0 = 0;
+  s1 = 0;
+  for (i = 0; i < 8; i++)
+    for (j = 0; j < 8; j++)
+      if (board[i][j] == 0) s0 += scoretable[i][j];
+      else if (board[i][j] == 1) s1 += scoretable[i][j];
+  return s0 - s1;
+}
+
+
+void bestmove (int board[8][8], int turn, int * row, char * col, int * diffscore, int lookahead) {
+  int bestscore = -10000, newdiffscore, newturn;
+  int i, j;
+  int rdummy;
+  char cdummy;
+  int tmpboard[8][8];
+  int coords[64][2];
+  int numbest = 0;
+  for (i = 0; i < 8; i++)
+    for (j = 0; j < 8; j++)
+      if(islegal (i, j, board, turn)){
+        copyboard (board, tmpboard);
+        domove (i, j, tmpboard, turn);
+        if (lookahead <= 1) {
+          newdiffscore = diffscoressmart (tmpboard);
+          if (turn == 1)  newdiffscore = -newdiffscore;
+        }
+        else {
+          newturn = nextturn (tmpboard, turn);
+          if (newturn != turn) {
+            bestmove (tmpboard, newturn, & rdummy, & cdummy, & newdiffscore, lookahead - 1);
+            newdiffscore = -newdiffscore;
+          }
+          else if (nextturn (tmpboard, 1 - turn) != 1 - turn) {
+            bestmove (tmpboard, newturn, & rdummy, & cdummy, & newdiffscore, lookahead - 1);
+          }
+          else {
+            newdiffscore = diffscoressmart (tmpboard);
+            if (turn == 1)  newdiffscore = -newdiffscore;
+          }
+        }
+        if (newdiffscore >= bestscore) {
+          if (newdiffscore > bestscore) {
+            bestscore = newdiffscore;
+            numbest = 0;
+          }
+          coords[numbest][0] = i;
+          coords[numbest++][1] = j;
+        }
+        break;
+      }
+  *diffscore = bestscore;
+  i = rand() % numbest;
+  *row = coords[i][0];
+  *col = coords[i][1];
+}
+
+void quit (int signal, int L_flag) {
+  if (L_flag) fclose (logfile);
+  exit (signal);
 }
 
 #endif

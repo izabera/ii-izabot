@@ -1,5 +1,6 @@
 /*
  * reversi by iza
+ * most of ai by mindflyer
  * mit license
  *
  * reads moves from stdin
@@ -12,10 +13,13 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <time.h>
 #include "reversi.h"
 
 
 int main (int argc, char ** argv) {
+
+  /* get options */
   char msg[80];
   int v_flag = 0,        /* _V_erbose, show board after each move (default = no) */
       c_flag = 0,        /* _C_olor, print colors (default = no) */ 
@@ -27,13 +31,16 @@ int main (int argc, char ** argv) {
       L_flag = 0,        /* _L_og everything to /tmp/ */
       H_flag = 0;        /* _H_int valid moves */
   char * s_tart = NULL;  /* _S_tarting position */
-  int c;
+
+  int player[2] = {0,0}; /* 0: human, 1: computer */
+  int c, /* compturn, */ complvl = 0, turn = 0;
+
   opterr = 0;
-  while ((c = getopt (argc, argv, "hvcudrlLHs:")) != -1)
+  while ((c = getopt (argc, argv, "hs:t:vcLHudrlA:B:")) != -1)
     switch (c) {
       case 'h':
         usage ();
-        return PRINT_SUCCESS; /* which is actually 1 */
+        quit (PRINT_SUCCESS, L_flag); /* which is actually 1 */
       case 'v':
         v_flag = 1; break;
       case 'c':
@@ -52,8 +59,31 @@ int main (int argc, char ** argv) {
         H_flag = 1; break;
       case 's':
         s_tart = optarg; s_flag = 1; break;
+      case 'A':
+        complvl = atoi (optarg);
+        player[0] = 1;
+      /*  compturn = 0; */
+        if (complvl < 1 || complvl > MAXLVL) {
+          sprintf(msg, "Invalid level: %s. Level must be between 1 and %d (inclusive).", optarg, MAXLVL);
+          printmsg (msg, PRINT_DEBUG);
+          usage ();
+          quit (PRINT_DEBUG, L_flag);
+        }
+        break;
+      case 'B':
+        complvl = atoi (optarg);
+        player[1] = 1;
+      /*  compturn = 1; */
+        if (complvl < 1 || complvl > MAXLVL) {
+          sprintf(msg, "Invalid level: %s. Level must be between 1 and %d (inclusive).", optarg, MAXLVL);
+          printmsg (msg, PRINT_DEBUG);
+          usage ();
+          quit (PRINT_DEBUG, L_flag);
+        }
+        break;
       case '?':
-        if (optopt == 's') printmsg ("Option -s requires an argument", PRINT_DEBUG);
+        if (optopt == 's' || optopt == 't' || optopt == 'A' || optopt == 'B')
+          printmsg ("Option -s requires an argument.", PRINT_DEBUG);
         else {
           sprintf(msg, "Unknown option -%c", optopt);
           printmsg (msg, PRINT_DEBUG);
@@ -72,7 +102,10 @@ int main (int argc, char ** argv) {
     usage ();
     return PRINT_DEBUG;
   }
+  /* get options */
 
+
+  /* prepare board */
   int board[8][8];
   int i, j;
   if (s_flag) {
@@ -123,37 +156,48 @@ int main (int argc, char ** argv) {
     board[4][4] = 0;
     board[3][4] = 1;
   }
+  /* board is now ready */
+
+
   char col;
-  int row, turn = 0;
+  int row;
+  int dummyscore;
   draw (board, turn, u_flag, d_flag, r_flag, l_flag, c_flag, H_flag);
   printturn (turn);
-  while (won (board) == 2 && scanf (" %c %d", &col, &row) != -1) {
-    if ((!(97 <= col && col <= 104)
-      && !(65 <= col && col <=  72))
-      || !( 1 <= row && row <=   8))
-    {
-      sprintf (msg, "Out of bounds: row=%d column=%c", (~row & 7) + 1, col);
-      printmsg (msg, PRINT_ERROR);
-      return PRINT_ERROR;
-    }
-    else {
+  srand (time (NULL));
+  while (won (board) == 2) {
+    if (player[turn] == 0) {
+      if (scanf (" %c %d", &col, &row) == EOF) break;
+      if ((!(97 <= col && col <= 104)
+            && !(65 <= col && col <=  72))
+          || !( 1 <= row && row <=   8))
+      {
+        sprintf (msg, "Out of bounds: row=%d column=%c.", 8 - row, col);
+        printmsg (msg, PRINT_ERROR);
+        continue;
+        /* quit (PRINT_ERROR, L_flag); */
+      }
       col %= 65;
       col %= 32;
-      row -= 1;
-      row = ~row & 7;
-      if (islegal (row, col, board, turn)) {
-        domove (row, col, board, turn);
-        turn = nextturn (board, turn);
-        if (v_flag) {
-          draw (board, turn, u_flag, d_flag, r_flag, l_flag, c_flag, H_flag);
-          printturn (turn);
-        }
-        showscore (board);
+      row = 8 - row;
+    }
+    else {
+      if (turn == 0) bestmove (board, turn, &row, &col, &dummyscore, complvl);
+      else bestmove (board, turn, &row, &col, &dummyscore, complvl);
+      printf ("Computer's move: %c%d\n", col + 65, 8 - row);
+    }
+    if (islegal (row, col, board, turn)) {
+      domove (row, col, board, turn);
+      turn = nextturn (board, turn);
+      if (v_flag) {
+        draw (board, turn, u_flag, d_flag, r_flag, l_flag, c_flag, H_flag);
+        printturn (turn);
       }
-      else {
-        sprintf (msg, "Invalid move: row=%d column=%c", (~row & 7) + 1, col + 65);
-        printmsg (msg, PRINT_WARNING);
-      }
+      showscore (board);
+    }
+    else {
+      sprintf (msg, "Invalid move: row=%d column=%c", 8 - row, col + 65);
+      printmsg (msg, PRINT_WARNING);
     }
   }
   sprintf (msg, "%s won", won (board) == 0 ? "Green" : won (board) == 1 ? "Red" : "Nobody");

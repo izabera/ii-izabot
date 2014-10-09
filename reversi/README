@@ -1,0 +1,27 @@
+Reversi game
+============
+
+Table of contents
+
+- Usage
+- Compiling
+- Bugs and limitations
+
+
+Usage
+=====
+
+Pass -h to see an help
+
+
+Compiling
+=========
+
+It should successfully compile with any compiler on any POSIX platform.
+If you have gcc and make, just run `make`.
+
+
+Bugs and limitations
+====================
+
+AI is currently very poor even at the higher levels.
