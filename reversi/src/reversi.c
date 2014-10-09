@@ -33,10 +33,10 @@ int main (int argc, char ** argv) {
   char * s_tart = NULL;  /* _S_tarting position */
 
   int player[2] = {0,0}; /* 0: human, 1: computer */
-  int c, /* compturn, */ complvl = 0, turn = 0;
+  int c, /* compturn, */ complvl = 2, turn = 0;
 
   opterr = 0;
-  while ((c = getopt (argc, argv, "hs:t:vcLHudrlA:B:")) != -1)
+  while ((c = getopt (argc, argv, "hs:t:vcLHudrlA::B::")) != -1)
     switch (c) {
       case 'h':
         usage ();
@@ -60,7 +60,7 @@ int main (int argc, char ** argv) {
       case 's':
         s_tart = optarg; s_flag = 1; break;
       case 'A':
-        complvl = atoi (optarg);
+        if (optarg) complvl = atoi (optarg);
         player[0] = 1;
       /*  compturn = 0; */
         if (complvl < 1 || complvl > MAXLVL) {
@@ -71,7 +71,7 @@ int main (int argc, char ** argv) {
         }
         break;
       case 'B':
-        complvl = atoi (optarg);
+        if (optarg) complvl = atoi (optarg);
         player[1] = 1;
       /*  compturn = 1; */
         if (complvl < 1 || complvl > MAXLVL) {
